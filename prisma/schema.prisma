@@ -52,7 +52,7 @@ model Server {
   sessions Session[]
   name     String
 
-  CurrentServer CurrentServer[]
+  currentServer CurrentServer[]
 }
 
 /// Represent a registered user of Sirexa
@@ -65,7 +65,6 @@ model User {
   password           String?
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
-  server             String
   registrationCount  Int            @default(0)
   lastRegistrationAt DateTime?
   Registration       Registration[]
