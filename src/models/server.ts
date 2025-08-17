@@ -1,5 +1,5 @@
 import prisma from "../db/connection";
-import { CurrentServer } from "../generated/prisma";
+import { CurrentServer, Session, User } from "../generated/prisma";
 
 class Server {
     id: String;
@@ -24,8 +24,10 @@ class Server {
                 users: true,
                 sessions: true,
                 currentServer: true,
-                name: true
+                name: true,
+                id: true
             }
         });
         return servers;
     }
+}
