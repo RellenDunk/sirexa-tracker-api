@@ -1,3 +1,5 @@
+import { getConnection } from "../db/connection";
+
 class Tracker {
     id: number;
     name: string;
@@ -22,7 +24,7 @@ class Tracker {
     static async findAll(): Promise<Tracker[]> {
         const connection = await getConnection();
         const result = await connection.query('SELECT * FROM trackers');
-        return result.rows.map(row => new Tracker(row.id, row.name, row.description));
+        return result.rows.map((row: { id: number; name: string; description: string; }) => new Tracker(row.id, row.name, row.description));
     }
 }
 
