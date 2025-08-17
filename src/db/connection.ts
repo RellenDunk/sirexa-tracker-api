@@ -1,13 +1,5 @@
-import { Pool } from 'pg';
+import { PrismaClient } from "../generated/prisma";
 
-const pool = new Pool({
-    user: 'your_username',
-    host: 'localhost',
-    database: 'your_database',
-    password: 'your_password',
-    port: 5432,
-});
+const prisma = new PrismaClient();
 
-export const getConnection = () => {
-    return pool;
-};
+export default prisma;
