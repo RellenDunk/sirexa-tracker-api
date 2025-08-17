@@ -91,6 +91,13 @@ model Session {
   serverId String
 
   registrations Registration[] @relation("SessionRegistrations")
+
+  currrentSession currrentSession[]
+}
+
+model currrentSession {
+  currentSession Session @relation(fields: [currentSessionId], references: [id])
+  currentSessionId String @id
 }
 
 /// represents an instance of a user registering with sirexa
