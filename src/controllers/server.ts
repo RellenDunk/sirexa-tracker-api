@@ -1,4 +1,3 @@
-import { cursorTo } from 'readline';
 import prisma from '../db/connection';
 import { CurrentServer, Server } from '../generated/prisma';
 
@@ -23,15 +22,15 @@ export const getCurrentServer = async (): Promise<CurrentServer | null> => {
 
 export const setCurrentServer = async (serverName: string): Promise<CurrentServer> => {
 
-    const server = await getServer(serverName).then(async server => {
-        return server;
-    }).catch(async (err) => {
-        return await createServer(serverName);
+    const server = await prisma.server.upsert({
+        where: { name: serverName },
+        update: {},
+        create: { name: serverName }
     })
-    
+
     return await prisma.currentServer.upsert({
         where: { id: 1 },
-        update: { currentServerId: server!.id, currentServerName: server!.name },
-        create: { currentServerId: server!.id, currentServerName: server!.name }
-    })
+        update: { currentServerId: server.id, currentServerName: server.name },
+        create: { currentServerId: server.id, currentServerName: server.name }
+    });
 }

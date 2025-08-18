@@ -96,8 +96,9 @@ model Session {
 }
 
 model currrentSession {
-  currentSession Session @relation(fields: [currentSessionId], references: [id])
-  currentSessionId String @id
+  currentSession Session @relation(fields: [sessionId], references: [id])
+  currentSessionId Int @id @default(1)
+  sessionId String
 }
 
 /// represents an instance of a user registering with sirexa
