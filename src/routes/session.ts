@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getCurrentSession } from '../controllers/session';
+import { formatSessionOutput, getCurrentSession } from '../controllers/session';
 
 const sessionRouter = Router();
 
@@ -9,12 +9,7 @@ sessionRouter.route('/').
         if(!currentSession) {
             return res.status(404).send('No current session found');
         }
-        const data = JSON.parse(JSON.stringify(currentSession, null, 2));
-        const registrations = data.currentSession.registrations;
-        const outputString = registrations.map((reg: 
-            { id: string,userName: string, startedAt: string, endedAt: string, type: string, origin: string, sessionPosition: number,userId: string,sessionId: string}) => {
-            return `${reg.sessionPosition}: ${reg.type} - ${reg.userName}`;
-        }).join('\n');
+        const outputString = formatSessionOutput(currentSession);
         res.send(`CURRENT USERS \n${outputString}`)
     });
 
@@ -27,3 +22,5 @@ sessionRouter.route('/date').
         res.send(`Display information about all sessions for: ${date}`);
     })   
 export default sessionRouter;
+
+

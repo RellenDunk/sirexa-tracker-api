@@ -27,6 +27,13 @@ enum RegistrationOrigin {
   Downgrade
 }
 
+enum RegistrationSessionStatus {
+  ACTIVE
+  DEREGISTERED
+  PROMOTED
+  DEMOTED
+}
+
 /// Represents the different tiers of users in Sirexa
 enum UserTiers {
   BASIC
@@ -86,13 +93,13 @@ model Session {
   startedAt    DateTime  @default(now())
   endedAt      DateTime?
   sessionNotes String?
+  currentNumUsers Int       @default(0)
 
   // relations
   Server   Server @relation(fields: [serverId], references: [id])
   serverId String
 
   registrations Registration[] @relation("SessionRegistrations")
-  registrationLog Registration[] @relation("SessionRegistrationLog")
 
   currrentSession currrentSession[]
 }
@@ -112,6 +119,8 @@ model Registration {
   type      RegistrationType
   origin    RegistrationOrigin
   sessionPosition Int @default(0)
+  sessionStatus RegistrationSessionStatus @default(ACTIVE)
+
 
   //relations
   User   User   @relation(fields: [userId], references: [id])
@@ -119,9 +128,6 @@ model Registration {
 
   session   Session @relation("SessionRegistrations", fields: [sessionId], references: [id])
   sessionId String
-
-  sessionLog Session @relation("SessionRegistrationLog", fields:[sessionLogId], references: [id])
-  sessionLogId String
 }
 
 model banAppealMeeting {

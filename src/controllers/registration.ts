@@ -1,6 +1,6 @@
 import { create } from "domain";
 import prisma from "../db/connection";
-import { Registration } from "../generated/prisma";
+import { $Enums, Registration, RegistrationSessionStatus, Session } from "../generated/prisma";
 
 export const getAllRegistrations = async (): Promise<Registration[]> => {
     return await prisma.registration.findMany();
@@ -45,15 +45,6 @@ export const registerMain = async (characterName: string, userName: string ): Pr
                     },
                 }
             },
-            sessionLog:{
-                create:{
-                    Server:{
-                        connect:{
-                            id: currentServer.currentServerId
-                        }
-                    },
-                }
-            }
         }
     }).then(async (reg) => {
         await prisma.currrentSession.upsert({
@@ -74,6 +65,18 @@ export const registerMain = async (characterName: string, userName: string ): Pr
                     }
                 }
             }
+        }).then(() => {
+            // increment the count of active registrations)
+            return prisma.session.update({
+                where: {
+                    id: reg.sessionId
+                },
+                data: {
+                    currentNumUsers: {
+                        increment: 1
+                    }
+                }
+            });
         })
         return reg;
     }) 
@@ -102,7 +105,7 @@ export const registerSecondary = async (characterName: string, userName: string)
             userName:userName,
             type: 'SECONDARY',
             origin:'NEW',
-            sessionPosition: currentSession.currentSession.registrations.length,
+            sessionPosition: currentSession.currentSession.currentNumUsers,
             User:{
                 connectOrCreate:{
                     where: {
@@ -126,12 +129,139 @@ export const registerSecondary = async (characterName: string, userName: string)
                 connect:{
                     id: currentSession.sessionId
                 }
+            }
+        }
+    }).then(async (reg) => {
+        // increment the count of active registrations
+        await prisma.session.update({
+            where: {
+                id: reg.sessionId
             },
-            sessionLog:{
+            data: {
+                currentNumUsers: {
+                    increment: 1
+                }
+            }
+        })
+        return reg
+    })
+}
+
+const deregister = async (sessionPosition: number): Promise<Session | null> => {
+    const { registration, currentSession } = await getRegistrationByPosId(sessionPosition);
+    
+    // update the registration to set sessionStatus to DEREGISTERED
+    const deregistered = await prisma.registration.update({
+        where: {
+            id: registration.id
+        },
+        data: {
+            sessionStatus: 'DEREGISTERED'
+        }
+    });
+
+    await renumberSecondaries(currentSession)
+    //decrement the count of active registrations
+    const updatedSession =await prisma.session.update({
+        where: {
+            id: currentSession.sessionId
+        },
+        data: {
+            currentNumUsers: {
+                decrement: 1
+            }
+        }
+    });
+
+    if (!updatedSession) {
+        throw new Error("Failed to update session");
+    }
+    return updatedSession
+}   
+
+export const promote = async (sessionPosition: number): Promise<Session | null> => {
+    const {registration, currentSession} = await getRegistrationByPosId(sessionPosition);
+
+    //change status of secondary registration to promoted
+    const oldRegistration = await prisma.registration.update({
+        where: {
+            id:registration.id
+        },
+        data:{
+                sessionStatus: 'PROMOTED'
+
+            }
+    })
+    if(!oldRegistration)
+        throw new Error('failed to promote user')
+    
+    //create new main registration with 'upgrade' origin
+    const newMainRegistration = await prisma.registration.create({
+        data:{
+            userName: oldRegistration.userName,
+            type: 'MAIN',
+            origin: 'Upgrade',
+            User:{
                 connect:{
-                    id: currentSession.sessionId
+                    id:oldRegistration.userId
+                }
+            },
+            session:{
+                connect:{
+                    id:oldRegistration.sessionId
                 }
             }
         }
     })
+    if (!newMainRegistration)
+        throw new Error('upgrade failed')
+
+    await renumberSecondaries(currentSession);
+    return currentSession.currentSession
+}
+
+async function renumberSecondaries(currentSession: { currentSession: { registrations: { id: string; startedAt: Date; endedAt: Date | null; userName: string; type: $Enums.RegistrationType; origin: $Enums.RegistrationOrigin; sessionPosition: number; sessionStatus: $Enums.RegistrationSessionStatus; userId: string; sessionId: string; }[]; } & { id: string; startedAt: Date; endedAt: Date | null; sessionNotes: string | null; currentNumUsers: number; serverId: string; }; } & { sessionId: string; currentSessionId: number; }) {
+    const activeSecondaryRegistrations = currentSession.currentSession.registrations.filter((registration) => {
+        return registration.type == 'SECONDARY' && registration.sessionStatus == 'ACTIVE';
+    });
+
+    //renumber secondaries
+    activeSecondaryRegistrations.map(async (reg, index) => {
+        return await prisma.registration.update({
+            where: {
+                id: reg.id
+            },
+            data: {
+                sessionPosition: index + 1
+            }
+        });
+    });
+}
+
+async function getRegistrationByPosId(sessionPosition: number) {
+    const currentSession = await prisma.currrentSession.findFirst({
+        include: {
+            currentSession: {
+                include: {
+                    registrations: true
+                }
+            }
+        }
+    });
+    if (!currentSession) {
+        throw new Error("No current session found");
+    }
+
+    // find the registration at the specified session position
+    const registration = await prisma.registration.findFirst({
+        where: {
+            sessionId: currentSession.sessionId,
+            sessionPosition: sessionPosition
+        }
+    });
+
+    if (!registration) {
+        throw new Error("No registration found at the specified session position");
+    }
+    return { registration, currentSession };
 }
