@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getAllServers } from '../controllers/server';
+import { getAllServers, setCurrentServer } from '../controllers/server';
 
 const serverRouter = Router();
 
@@ -10,9 +10,9 @@ serverRouter.route('/').
     });
 
 serverRouter.route('/:serverName').
-    post((req, res) =>{
+    post(async (req, res) =>{
         const serverName = req.params.serverName;
-        res.json(await setServer(serverName))
+        res.json(await setCurrentServer(serverName))
     })
 
 serverRouter.route('/current').

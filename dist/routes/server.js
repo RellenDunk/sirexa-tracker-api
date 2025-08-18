@@ -8,7 +8,10 @@ serverRouter.route('/').
     res.json(await (0, server_1.getAllServers)());
 });
 serverRouter.route('/:serverName').
-    post((req, res) => res.send(`Set Current Server to name, create new server if doesn't exist: ${req.params.serverName}`));
+    post(async (req, res) => {
+    const serverName = req.params.serverName;
+    res.json(await (0, server_1.setCurrentServer)(serverName));
+});
 serverRouter.route('/current').
     get((req, res) => res.send('Get Current Server'));
 exports.default = serverRouter;
