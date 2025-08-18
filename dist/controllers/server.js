@@ -26,10 +26,10 @@ const getCurrentServer = async () => {
 };
 exports.getCurrentServer = getCurrentServer;
 const setCurrentServer = async (serverName) => {
-    const server = await (0, exports.getServer)(serverName).then(async (server) => {
-        return server;
-    }).catch(async (err) => {
-        return await (0, exports.createServer)(serverName);
+    const server = await connection_1.default.server.upsert({
+        where: { name: serverName },
+        update: {},
+        create: { name: serverName }
     });
     return await connection_1.default.currentServer.upsert({
         where: { id: 1 },

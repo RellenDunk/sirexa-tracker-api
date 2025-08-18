@@ -1,11 +1,14 @@
 import express from 'express';
 import { json } from 'body-parser';
 import { setRoutes } from './routes/index';
+import qs from 'qs';
+
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(json());
+app.set('query parser', (str:string) => qs.parse(str, { depth: 5 }));
 setRoutes(app);
 
 app.listen(PORT, () => {
