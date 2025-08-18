@@ -8,7 +8,7 @@ registrationRouter.route('/').
 registrationRouter.route('/main').
     post((req, res) => {
         const userName = req.query.uName || 'defaultUser';
-        const charName = req.query.cName || 'unknown realname';
+        const charName = req.query.cName || req.query.uName;
         res.send(`Register user with name: ${userName}`);
     });
 registrationRouter.route('/secondary/:userName').
