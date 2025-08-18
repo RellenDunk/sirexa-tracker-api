@@ -147,7 +147,7 @@ export const registerSecondary = async (characterName: string, userName: string)
     })
 }
 
-const deregister = async (sessionPosition: number): Promise<Session | null> => {
+export const deregister = async (sessionPosition: number): Promise<Session | null> => {
     const { registration, currentSession } = await getRegistrationByPosId(sessionPosition);
     
     // update the registration to set sessionStatus to DEREGISTERED
@@ -214,6 +214,47 @@ export const promote = async (sessionPosition: number): Promise<Session | null> 
         }
     })
     if (!newMainRegistration)
+        throw new Error('upgrade failed')
+
+    await renumberSecondaries(currentSession);
+    return currentSession.currentSession
+}
+
+export const demote = async (sessionPosition: number): Promise<Session | null> => {
+    const {registration, currentSession} = await getRegistrationByPosId(sessionPosition);
+
+    //change status of secondary registration to promoted
+    const oldRegistration = await prisma.registration.update({
+        where: {
+            id:registration.id
+        },
+        data:{
+                sessionStatus: 'DEMOTED'
+
+            }
+    })
+    if(!oldRegistration)
+        throw new Error('failed to promote user')
+    
+    //create new seconday registration with 'downgrade' origin
+    const newSecondaryRegistration = await prisma.registration.create({
+        data:{
+            userName: oldRegistration.userName,
+            type: 'SECONDARY',
+            origin: 'Downgrade',
+            User:{
+                connect:{
+                    id:oldRegistration.userId
+                }
+            },
+            session:{
+                connect:{
+                    id:oldRegistration.sessionId
+                }
+            }
+        }
+    })
+    if (!newSecondaryRegistration)
         throw new Error('upgrade failed')
 
     await renumberSecondaries(currentSession);

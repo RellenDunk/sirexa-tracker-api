@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { formatSessionOutput, getCurrentSession } from '../controllers/session';
+import { endCurrentSesssion, formatSessionOutput, getCurrentSession } from '../controllers/session';
 
 const sessionRouter = Router();
 
@@ -14,7 +14,7 @@ sessionRouter.route('/').
     });
 
 sessionRouter.route('/end').
-    post((req, res) => res.send(`Sirexa has no registered users`));
+    delete(async (req, res) => res.send(await endCurrentSesssion()));
 
 sessionRouter.route('/date').
     get((req, res) => {

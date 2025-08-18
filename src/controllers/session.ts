@@ -14,6 +14,15 @@ export const getCurrentSession = async (): Promise<currrentSession | null> => {
         }
     });
 }
+
+export const endCurrentSesssion = async() => {
+    return await prisma.currrentSession.delete({
+        where:{
+            currentSessionId: 1
+        },
+    })
+}
+
 export const formatSessionOutput = (currentSession: { currentSessionId: number; sessionId: string; }) => {
     const data = JSON.parse(JSON.stringify(currentSession, null, 2));
     const registrations = data.currentSession.registrations;

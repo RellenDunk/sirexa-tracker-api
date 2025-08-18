@@ -11,10 +11,20 @@ registrationRouter.route('/main').
     const charName = req.query.cName || req.query.uName;
     res.json(await (0, registration_1.registerMain)(charName, userName));
 });
-registrationRouter.route('/secondary/').
+registrationRouter.route('/secondary').
     post(async (req, res) => {
     const userName = req.query.uName || 'defaultUser';
     const charName = req.query.cName || req.query.uName;
     res.json(await (0, registration_1.registerSecondary)(charName, userName));
+});
+registrationRouter.route('/promote/:pos').
+    post(async (req, res) => {
+    const pos = parseInt(req.params.pos);
+    res.json(await (0, registration_1.promote)(pos));
+});
+registrationRouter.route('/deregister/:pos').
+    post(async (req, res) => {
+    const pos = parseInt(req.params.pos);
+    res.json(await (0, registration_1.deregister)(pos));
 });
 exports.default = registrationRouter;
