@@ -1,9 +1,10 @@
 import { Request, Response } from 'express';
+import prisma from '../db/connection'; 
 
 class ServerController {
     public async listServers(req: Request, res: Response): Promise<void> {
-        // Logic to list all servers
-        res.send('Server This should list all the servers');
+        const result = await prisma.server.findMany();
+        res.json(result);
     }
 
     public async setCurrentServer(req: Request, res: Response): Promise<void> {
@@ -17,3 +18,4 @@ class ServerController {
         res.send('Get Current Server');
     }
 }
+
