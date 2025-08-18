@@ -1,6 +1,8 @@
 import prisma from "../db/connection";
 import { CurrentServer, Session, User } from "../generated/prisma";
 
+
+
 class Server {
     id: String;
     users: User[];

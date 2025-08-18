@@ -1,9 +1,0 @@
-export interface Server{
-    id: string;
-    users: User[];
-    sessions: Session[];
-    name: string;
-    currentServer: CurrentServer[];
-    
-    getAllServers(): Promise<Server[]>;
-}
