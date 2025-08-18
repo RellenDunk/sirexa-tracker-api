@@ -1,16 +1,19 @@
 import { Router } from 'express';
-import prisma from '../db/connection';
+import { getAllServers } from '../controllers/server';
 
 const serverRouter = Router();
 
 serverRouter.route('/').
     get(async (req, res) => {
-        const result = await prisma.server.findMany();
-        res.json(result);
+        res.json(await getAllServers());
+
     });
 
 serverRouter.route('/:serverName').
-    post((req, res) => res.send(`Set Current Server to name, create new server if doesn't exist: ${req.params.serverName}`));
+    post((req, res) =>{
+        const serverName = req.params.serverName;
+        res.json(await setServer(serverName))
+    })
 
 serverRouter.route('/current').
     get((req, res) => res.send('Get Current Server'));

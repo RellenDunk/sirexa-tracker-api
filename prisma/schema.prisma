@@ -43,8 +43,9 @@ enum UserStatus {
 
 /// Represents the current server that Sirexa is in.
 model CurrentServer {
-  currentServer Server @relation(fields: [currentServerId], references: [id])
-  currentServerId     String    @id
+  id                    Int  @id @default(1)
+  currentServerId       String
+  currentServerName     String
 }
 
 model Server {
@@ -53,8 +54,6 @@ model Server {
   name     String    @unique
   users    User[]
   sessions Session[]
-
-  currentServer CurrentServer[]
 }
 
 /// Represent a registered user of Sirexa
