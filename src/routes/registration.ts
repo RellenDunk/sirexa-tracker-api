@@ -9,7 +9,7 @@ registrationRouter.route('/main').
     post((req, res) => {
         const userName = req.query.uName || 'defaultUser';
         const charName = req.query.cName || 'unknown realname';
-        res.send(`Register user with name: ${uName}`);
+        res.send(`Register user with name: ${userName}`);
     });
 registrationRouter.route('/secondary/:userName').
     post((req, res) => {
