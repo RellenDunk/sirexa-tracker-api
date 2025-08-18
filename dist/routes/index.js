@@ -4,11 +4,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.setRoutes = setRoutes;
-const express_1 = require("express");
-const controllers_1 = __importDefault(require("../controllers"));
-const router = (0, express_1.Router)();
-const indexController = new controllers_1.default();
+const server_1 = __importDefault(require("./server"));
+const user_1 = __importDefault(require("./user"));
 function setRoutes(app) {
-    app.get('/trackers', indexController.getTrackers.bind(indexController));
-    app.post('/trackers', indexController.createTracker.bind(indexController));
+    app.use('/server', server_1.default);
+    app.use('/user', user_1.default);
 }
