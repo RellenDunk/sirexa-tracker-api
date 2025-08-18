@@ -1,3 +1,4 @@
+import { create } from "domain";
 import prisma from "../db/connection";
 import { Registration } from "../generated/prisma";
 
@@ -5,7 +6,7 @@ export const getAllRegistrations = async (): Promise<Registration[]> => {
     return await prisma.registration.findMany();
 }
 
-export const registerMain = async (userId: string, characterName: string, userName: string ): Promise<Registration> => {
+export const registerMain = async (characterName: string, userName: string ): Promise<Registration> => {
     
     const currentServer = await prisma.currentServer.findFirst();
     if (!currentServer) {
@@ -18,16 +19,19 @@ export const registerMain = async (userId: string, characterName: string, userNa
             origin:'NEW',
             User:{
                 connectOrCreate:{
-                    where: {
-                        characterName: characterName
-                    },
                     create: {
                         characterName: characterName,
                         lastRegistrationAt: new Date(Date()),
                         Server: {
                             connect: {
-                                id: `${currentServer.currentServerId}`
+                                id: currentServer.currentServerId
                             }
+                        }
+                    },
+                    where: {
+                        characterName_serverId: {
+                            characterName: characterName,
+                            serverId: currentServer.currentServerId
                         }
                     }
                 }
@@ -36,23 +40,57 @@ export const registerMain = async (userId: string, characterName: string, userNa
                 create:{
                     Server:{
                         connect:{
-                            id: `${currentServer.currentServerId}`
+                            id: currentServer.currentServerId
                         }
-                    }
+                    },
+                }
+            },
+            sessionLog:{
+                create:{
+                    Server:{
+                        connect:{
+                            id: currentServer.currentServerId
+                        }
+                    },
                 }
             }
         }
+    }).then(async (reg) => {
+        await prisma.currrentSession.upsert({
+            where:{
+                currentSessionId: 1
+            },
+            update:{
+                currentSession:{
+                    connect:{
+                        id: reg.sessionId
+                    }
+                }
+            },
+            create:{
+                currentSession:{
+                    connect:{
+                        id: reg.sessionId
+                    }
+                }
+            }
+        })
+        return reg;
     }) 
 }
 
-export const registerSecondary = async (userId: string, characterName: string, userName: string): Promise<Registration> => {
+export const registerSecondary = async (characterName: string, userName: string): Promise<Registration> => {
     const currentServer = await prisma.currentServer.findFirst();
     if (!currentServer) {
         throw new Error("No current server found");
     }
     const currentSession = await prisma.currrentSession.findFirst({
         include:{
-            currentSession: true
+            currentSession:{
+                include:{
+                    registrations:true
+                }
+            }
         }
     })
     if (!currentSession) {
@@ -64,17 +102,21 @@ export const registerSecondary = async (userId: string, characterName: string, u
             userName:userName,
             type: 'SECONDARY',
             origin:'NEW',
+            sessionPosition: currentSession.currentSession.registrations.length,
             User:{
                 connectOrCreate:{
                     where: {
-                        characterName: characterName
+                        characterName_serverId: {
+                            characterName:characterName,
+                            serverId: currentServer.currentServerId
+                        }
                     },
                     create: {
                         characterName: characterName,
                         lastRegistrationAt: new Date(Date()),
                         Server: {
                             connect: {
-                                id: `${currentServer.currentServerId}`
+                                id: currentServer.currentServerId
                             }
                         }
                     }
@@ -82,7 +124,12 @@ export const registerSecondary = async (userId: string, characterName: string, u
             },
             session:{
                 connect:{
-                    id: `${currentSession.sessionId}`
+                    id: currentSession.sessionId
+                }
+            },
+            sessionLog:{
+                connect:{
+                    id: currentSession.sessionId
                 }
             }
         }
