@@ -21,12 +21,14 @@ enum RegistrationType {
   SECONDARY
 }
 
+///only NEW registrations are counted in user rankings, this allows for promotions and downgrades not inflating
 enum RegistrationOrigin {
   NEW
   Upgrade
   Downgrade
 }
 
+///This is necessary so that we can know they didn't deregister, and still use it in user registration counts - also allows the information to be used in visualizations of sessions
 enum RegistrationSessionStatus {
   ACTIVE
   DEREGISTERED
@@ -116,6 +118,7 @@ model Registration {
   userName  String
   startedAt DateTime           @default(now())
   endedAt   DateTime?
+  updatedAt DateTime           @updatedAt
   type      RegistrationType
   origin    RegistrationOrigin
   sessionPosition Int @default(0)

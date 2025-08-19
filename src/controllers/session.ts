@@ -24,7 +24,7 @@ export const endCurrentSesssion = async() => {
 
 export const formatSessionOutput = (cSession: CurrentSession) => {
     const data = JSON.parse(JSON.stringify(cSession, null, 2));
-    const registrations:Registration[] = data.currentSession.registrations;
+    const registrations:Registration[] = data.session.registrations;
     const activeRegistrations = registrations.filter((reg: { sessionStatus: string; }) => reg.sessionStatus === 'ACTIVE');
     const outputString = activeRegistrations.sort((reg1,reg2)=>reg1.sessionPosition-reg2.sessionPosition ).map((reg:Registration) => {
         return `${reg.sessionPosition}: ${reg.type} - ${reg.userName}`;

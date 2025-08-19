@@ -159,6 +159,7 @@ export const deregister = async (sessionPosition: number): Promise<Session | nul
         }
     });
 
+    currentSession.session.registrations = currentSession.session.registrations.filter((reg) => reg.sessionPosition != sessionPosition)
     await renumberSecondaries(currentSession)
     //decrement the count of active registrations
     const updatedSession =await prisma.session.update({
@@ -215,14 +216,17 @@ export const promote = async (sessionPosition: number): Promise<Session | null> 
     if (!newMainRegistration)
         throw new Error('upgrade failed')
 
-    await renumberSecondaries(currentSession);
+    if(currentSession.session.registrations.find(reg => reg.sessionPosition == 0))
+        await demote(0)
+    else
+        renumberSecondaries(currentSession)
     return currentSession.session
 }
 
 export const demote = async (sessionPosition: number): Promise<Session | null> => {
     const {registration, currentSession} = await getRegistrationByPosId(sessionPosition);
 
-    //change status of secondary registration to promoted
+    //change status of main registration to DEMOTED (to remove it allow it to be counted)
     const oldRegistration = await prisma.registration.update({
         where: {
             id:registration.id
@@ -256,6 +260,11 @@ export const demote = async (sessionPosition: number): Promise<Session | null> =
     if (!newSecondaryRegistration)
         throw new Error('upgrade failed')
 
+    //make the in-memory information match what's in the database before we renumber
+    const mainIndex = currentSession.session.registrations.findIndex((reg) => reg.sessionPosition == 0)
+    currentSession.session.registrations[mainIndex].origin='Downgrade'
+    currentSession.session.registrations[mainIndex].type='SECONDARY'
+
     await renumberSecondaries(currentSession);
     return currentSession.session
 }
@@ -266,20 +275,21 @@ async function renumberSecondaries(currentSession: { session: { registrations: R
     });
     //renumber secondaries
     const renumbered = activeSecondaryRegistrations.map((reg, index) => {
-        reg.sessionPosition = index + 1
+        reg.sessionPosition = index +1
         return reg
     })
 
-    renumbered.forEach(async reg => {
-        console.log(await prisma.registration.update({
+    for (const reg of renumbered) {
+        const updated = await prisma.registration.update({
             where:{
                 id: reg.id
             },
             data:{
                 sessionPosition: reg.sessionPosition
             }
-        }))
-    });
+        })
+        console.log(updated)
+    };
 }
 
 async function getRegistrationByPosId(sessionPosition: number) {

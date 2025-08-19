@@ -26,10 +26,9 @@ registrationRouter.route('/promote/:pos').
         res.json(await promote(pos))
     })
 
-registrationRouter.route('/demote/:pos').
+registrationRouter.route('/demote').
     post(async (req, res) => {
-        const pos = parseInt(req.params.pos);
-        res.json(await demote(pos))
+        res.json(await demote(0))
     })
 
 registrationRouter.route('/deregister/:pos').
