@@ -15,6 +15,28 @@ export const getCurrentSession = async (): Promise<CurrentSession | null> => {
 }
 
 export const endCurrentSesssion = async() => {
+    //Set all Active registrations to deregistered
+    const currentSession = await prisma.currentSession.findFirst({
+        include:{
+            session:{
+                include:{
+                    registrations: true
+                }
+            }
+        }
+    })
+
+    if(!currentSession)
+        throw('this error is here to remove null posibility')
+
+    await prisma.registration.updateMany({
+        where:{
+            sessionId: currentSession.sessionId
+        },
+        data:{
+            sessionStatus: 'DEREGISTERED'
+        }
+    })
     return await prisma.currentSession.delete({
         where:{
             id: 1
