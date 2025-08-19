@@ -1,11 +1,10 @@
-import { Session } from "../generated/prisma";
-import { currrentSession } from "../generated/prisma";
+import { CurrentServer, Session, CurrentSession, Registration } from "../generated/prisma";
 import prisma from "../db/connection";
 
-export const getCurrentSession = async (): Promise<currrentSession | null> => {
-    return await prisma.currrentSession.findFirst({
+export const getCurrentSession = async (): Promise<CurrentSession | null> => {
+    return await prisma.currentSession.findFirst({
         include: {
-            currentSession:{
+            session:{
                 include:{
                     registrations: true
                 }
@@ -16,19 +15,19 @@ export const getCurrentSession = async (): Promise<currrentSession | null> => {
 }
 
 export const endCurrentSesssion = async() => {
-    return await prisma.currrentSession.delete({
+    return await prisma.currentSession.delete({
         where:{
-            currentSessionId: 1
+            id: 1
         },
     })
 }
 
-export const formatSessionOutput = (currentSession: { currentSessionId: number; sessionId: string; }) => {
-    const data = JSON.parse(JSON.stringify(currentSession, null, 2));
-    const registrations = data.currentSession.registrations;
+export const formatSessionOutput = (cSession: CurrentSession) => {
+    const data = JSON.parse(JSON.stringify(cSession, null, 2));
+    const registrations:Registration[] = data.currentSession.registrations;
     const activeRegistrations = registrations.filter((reg: { sessionStatus: string; }) => reg.sessionStatus === 'ACTIVE');
-    const outputString = activeRegistrations.map((reg: { id: string; userName: string; startedAt: string; endedAt: string; type: string; origin: string; sessionPosition: number; sessionStatus: string, userId: string; sessionId: string; }) => {
+    const outputString = activeRegistrations.sort((reg1,reg2)=>reg1.sessionPosition-reg2.sessionPosition ).map((reg:Registration) => {
         return `${reg.sessionPosition}: ${reg.type} - ${reg.userName}`;
-    }).join('\n');
+    }).join('\n')
     return outputString;
 }

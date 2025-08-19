@@ -1,6 +1,5 @@
-import { create } from "domain";
 import prisma from "../db/connection";
-import { $Enums, Registration, RegistrationSessionStatus, Session } from "../generated/prisma";
+import { Registration, Session, CurrentSession } from "../generated/prisma";
 
 export const getAllRegistrations = async (): Promise<Registration[]> => {
     return await prisma.registration.findMany();
@@ -17,12 +16,12 @@ export const registerMain = async (characterName: string, userName: string ): Pr
             userName:userName,
             type: 'MAIN',
             origin:'NEW',
-            User:{
+            user:{
                 connectOrCreate:{
                     create: {
                         characterName: characterName,
                         lastRegistrationAt: new Date(Date()),
-                        Server: {
+                        server: {
                             connect: {
                                 id: currentServer.currentServerId
                             }
@@ -38,7 +37,7 @@ export const registerMain = async (characterName: string, userName: string ): Pr
             },
             session:{
                 create:{
-                    Server:{
+                    server:{
                         connect:{
                             id: currentServer.currentServerId
                         }
@@ -47,19 +46,19 @@ export const registerMain = async (characterName: string, userName: string ): Pr
             },
         }
     }).then(async (reg) => {
-        await prisma.currrentSession.upsert({
+        await prisma.currentSession.upsert({
             where:{
-                currentSessionId: 1
+                id: 1
             },
             update:{
-                currentSession:{
+                session:{
                     connect:{
                         id: reg.sessionId
                     }
                 }
             },
             create:{
-                currentSession:{
+                session:{
                     connect:{
                         id: reg.sessionId
                     }
@@ -87,9 +86,9 @@ export const registerSecondary = async (characterName: string, userName: string)
     if (!currentServer) {
         throw new Error("No current server found");
     }
-    const currentSession = await prisma.currrentSession.findFirst({
+    const currentSession = await prisma.currentSession.findFirst({
         include:{
-            currentSession:{
+            session:{
                 include:{
                     registrations:true
                 }
@@ -105,8 +104,8 @@ export const registerSecondary = async (characterName: string, userName: string)
             userName:userName,
             type: 'SECONDARY',
             origin:'NEW',
-            sessionPosition: currentSession.currentSession.currentNumUsers,
-            User:{
+            sessionPosition: currentSession.session.currentNumUsers,
+            user:{
                 connectOrCreate:{
                     where: {
                         characterName_serverId: {
@@ -117,7 +116,7 @@ export const registerSecondary = async (characterName: string, userName: string)
                     create: {
                         characterName: characterName,
                         lastRegistrationAt: new Date(Date()),
-                        Server: {
+                        server: {
                             connect: {
                                 id: currentServer.currentServerId
                             }
@@ -201,7 +200,7 @@ export const promote = async (sessionPosition: number): Promise<Session | null> 
             userName: oldRegistration.userName,
             type: 'MAIN',
             origin: 'Upgrade',
-            User:{
+            user:{
                 connect:{
                     id:oldRegistration.userId
                 }
@@ -217,7 +216,7 @@ export const promote = async (sessionPosition: number): Promise<Session | null> 
         throw new Error('upgrade failed')
 
     await renumberSecondaries(currentSession);
-    return currentSession.currentSession
+    return currentSession.session
 }
 
 export const demote = async (sessionPosition: number): Promise<Session | null> => {
@@ -242,7 +241,7 @@ export const demote = async (sessionPosition: number): Promise<Session | null> =
             userName: oldRegistration.userName,
             type: 'SECONDARY',
             origin: 'Downgrade',
-            User:{
+            user:{
                 connect:{
                     id:oldRegistration.userId
                 }
@@ -258,31 +257,35 @@ export const demote = async (sessionPosition: number): Promise<Session | null> =
         throw new Error('upgrade failed')
 
     await renumberSecondaries(currentSession);
-    return currentSession.currentSession
+    return currentSession.session
 }
 
-async function renumberSecondaries(currentSession: { currentSession: { registrations: { id: string; startedAt: Date; endedAt: Date | null; userName: string; type: $Enums.RegistrationType; origin: $Enums.RegistrationOrigin; sessionPosition: number; sessionStatus: $Enums.RegistrationSessionStatus; userId: string; sessionId: string; }[]; } & { id: string; startedAt: Date; endedAt: Date | null; sessionNotes: string | null; currentNumUsers: number; serverId: string; }; } & { sessionId: string; currentSessionId: number; }) {
-    const activeSecondaryRegistrations = currentSession.currentSession.registrations.filter((registration) => {
+async function renumberSecondaries(currentSession: { session: { registrations: Registration[]; }; }) {
+    const activeSecondaryRegistrations:Registration[] = currentSession.session.registrations.filter((registration:Registration) => {
         return registration.type == 'SECONDARY' && registration.sessionStatus == 'ACTIVE';
     });
-
     //renumber secondaries
-    activeSecondaryRegistrations.map(async (reg, index) => {
-        return await prisma.registration.update({
-            where: {
+    const renumbered = activeSecondaryRegistrations.map((reg, index) => {
+        reg.sessionPosition = index + 1
+        return reg
+    })
+
+    renumbered.forEach(async reg => {
+        console.log(await prisma.registration.update({
+            where:{
                 id: reg.id
             },
-            data: {
-                sessionPosition: index + 1
+            data:{
+                sessionPosition: reg.sessionPosition
             }
-        });
+        }))
     });
 }
 
 async function getRegistrationByPosId(sessionPosition: number) {
-    const currentSession = await prisma.currrentSession.findFirst({
+    const currentSession = await prisma.currentSession.findFirst({
         include: {
-            currentSession: {
+            session: {
                 include: {
                     registrations: true
                 }
