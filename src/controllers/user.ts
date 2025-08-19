@@ -1,5 +1,24 @@
 import prisma from "../db/connection";
 
+export const  banUser = async (cName: string) => {
+
+    const cServer = await prisma.currentServer.findFirst()
+    if(!cServer)
+        throw new Error('no server set')
+
+    const bannedUser = await prisma.user.update({
+        where:{
+            characterName_serverId:{
+                characterName: cName,
+                serverId: cServer.currentServerId
+            }
+        },
+        data:{
+            banUser: true
+        }
+    })
+}
+
 // export const getUserByName = async (characterName: string) => {
 //     return await prisma.user.findUnique({
 //         where: {

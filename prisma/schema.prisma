@@ -87,6 +87,7 @@ model User {
   banAppealMeeting BanAppealMeeting[]
 
   @@unique([characterName, serverId])
+  Ban Ban?
 }
 
 /// Represent a registration session for Sirexa
@@ -133,6 +134,11 @@ model Registration {
   sessionId String
 }
 
+model Ban {
+  id      String @id @default(uuid())
+  user    User @relation(fields:[userId], references:[id]) 
+  userId  String @unique
+}
 model BanAppealMeeting {
   id          String   @id @default(uuid())
   createdAt   DateTime @default(now())
