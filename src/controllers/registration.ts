@@ -1,5 +1,8 @@
 import prisma from "../db/connection";
-import { Registration, Session, CurrentSession } from "../generated/prisma";
+import { Registration, Session, RegistrationOrigin} from "../generated/prisma";
+import { getRegistrationsByUserAndTypes } from "../models/registrations";
+import { getCurrentServer } from "../models/server";
+import { getUserByName } from "../models/user";
 
 export const getAllRegistrations = async (): Promise<Registration[]> => {
     return await prisma.registration.findMany();
@@ -338,3 +341,14 @@ async function getRegistrationByPosId(sessionPosition: number) {
     }
     return { registration, currentSession };
 }
+ 
+export const  getRegistrationsByNameAndType = async (cName: string, types: RegistrationOrigin[]) => {
+    const server = await getCurrentServer()
+    const user = await getUserByName(cName, server)
+    const registrations = await getRegistrationsByUserAndTypes(user.id, types, server.id)
+    if(!registrations){
+        throw new Error (`could not get registrations for ${cName} of type: ${types} on server ${server}`)
+    }
+    else return registrations
+}
+

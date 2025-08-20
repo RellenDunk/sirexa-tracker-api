@@ -19,12 +19,12 @@ const registerMain = async (characterName, userName) => {
             userName: userName,
             type: 'MAIN',
             origin: 'NEW',
-            User: {
+            user: {
                 connectOrCreate: {
                     create: {
                         characterName: characterName,
                         lastRegistrationAt: new Date(Date()),
-                        Server: {
+                        server: {
                             connect: {
                                 id: currentServer.currentServerId
                             }
@@ -40,7 +40,7 @@ const registerMain = async (characterName, userName) => {
             },
             session: {
                 create: {
-                    Server: {
+                    server: {
                         connect: {
                             id: currentServer.currentServerId
                         }
@@ -49,19 +49,19 @@ const registerMain = async (characterName, userName) => {
             },
         }
     }).then(async (reg) => {
-        await connection_1.default.currrentSession.upsert({
+        await connection_1.default.currentSession.upsert({
             where: {
-                currentSessionId: 1
+                id: 1
             },
             update: {
-                currentSession: {
+                session: {
                     connect: {
                         id: reg.sessionId
                     }
                 }
             },
             create: {
-                currentSession: {
+                session: {
                     connect: {
                         id: reg.sessionId
                     }
@@ -89,9 +89,9 @@ const registerSecondary = async (characterName, userName) => {
     if (!currentServer) {
         throw new Error("No current server found");
     }
-    const currentSession = await connection_1.default.currrentSession.findFirst({
+    const currentSession = await connection_1.default.currentSession.findFirst({
         include: {
-            currentSession: {
+            session: {
                 include: {
                     registrations: true
                 }
@@ -106,8 +106,8 @@ const registerSecondary = async (characterName, userName) => {
             userName: userName,
             type: 'SECONDARY',
             origin: 'NEW',
-            sessionPosition: currentSession.currentSession.currentNumUsers,
-            User: {
+            sessionPosition: currentSession.session.currentNumUsers,
+            user: {
                 connectOrCreate: {
                     where: {
                         characterName_serverId: {
@@ -118,7 +118,7 @@ const registerSecondary = async (characterName, userName) => {
                     create: {
                         characterName: characterName,
                         lastRegistrationAt: new Date(Date()),
-                        Server: {
+                        server: {
                             connect: {
                                 id: currentServer.currentServerId
                             }
@@ -159,6 +159,7 @@ const deregister = async (sessionPosition) => {
             sessionStatus: 'DEREGISTERED'
         }
     });
+    currentSession.session.registrations = currentSession.session.registrations.filter((reg) => reg.sessionPosition != sessionPosition);
     await renumberSecondaries(currentSession);
     //decrement the count of active registrations
     const updatedSession = await connection_1.default.session.update({
@@ -179,6 +180,8 @@ const deregister = async (sessionPosition) => {
 exports.deregister = deregister;
 const promote = async (sessionPosition) => {
     const { registration, currentSession } = await getRegistrationByPosId(sessionPosition);
+    if (currentSession.session.registrations.find(reg => reg.sessionPosition == 0 && reg.sessionStatus == 'ACTIVE' && reg.type == 'MAIN'))
+        await (0, exports.demote)(0);
     //change status of secondary registration to promoted
     const oldRegistration = await connection_1.default.registration.update({
         where: {
@@ -196,7 +199,7 @@ const promote = async (sessionPosition) => {
             userName: oldRegistration.userName,
             type: 'MAIN',
             origin: 'Upgrade',
-            User: {
+            user: {
                 connect: {
                     id: oldRegistration.userId
                 }
@@ -210,13 +213,24 @@ const promote = async (sessionPosition) => {
     });
     if (!newMainRegistration)
         throw new Error('upgrade failed');
-    await renumberSecondaries(currentSession);
-    return currentSession.currentSession;
+    const updatedCurrentSession = await connection_1.default.currentSession.findFirst({
+        include: {
+            session: {
+                include: {
+                    registrations: true
+                }
+            }
+        }
+    });
+    if (!updatedCurrentSession)
+        throw new Error(`Couldn't grab session`);
+    renumberSecondaries(updatedCurrentSession);
+    return currentSession.session;
 };
 exports.promote = promote;
 const demote = async (sessionPosition) => {
     const { registration, currentSession } = await getRegistrationByPosId(sessionPosition);
-    //change status of secondary registration to promoted
+    //change status of main registration to DEMOTED (to remove it allow it to be counted)
     const oldRegistration = await connection_1.default.registration.update({
         where: {
             id: registration.id
@@ -226,14 +240,14 @@ const demote = async (sessionPosition) => {
         }
     });
     if (!oldRegistration)
-        throw new Error('failed to promote user');
+        throw new Error(`failed to demote user ${registration}`);
     //create new seconday registration with 'downgrade' origin
     const newSecondaryRegistration = await connection_1.default.registration.create({
         data: {
             userName: oldRegistration.userName,
             type: 'SECONDARY',
             origin: 'Downgrade',
-            User: {
+            user: {
                 connect: {
                     id: oldRegistration.userId
                 }
@@ -246,31 +260,47 @@ const demote = async (sessionPosition) => {
         }
     });
     if (!newSecondaryRegistration)
-        throw new Error('upgrade failed');
+        throw new Error('Demotion failed');
+    //make the in-memory information match what's in the database before we renumber
+    const newSessionInfo = await connection_1.default.currentSession.findFirst({
+        include: {
+            session: {
+                include: {
+                    registrations: true
+                }
+            }
+        }
+    });
     await renumberSecondaries(currentSession);
-    return currentSession.currentSession;
+    return currentSession.session;
 };
 exports.demote = demote;
 async function renumberSecondaries(currentSession) {
-    const activeSecondaryRegistrations = currentSession.currentSession.registrations.filter((registration) => {
+    const activeSecondaryRegistrations = currentSession.session.registrations.filter((registration) => {
         return registration.type == 'SECONDARY' && registration.sessionStatus == 'ACTIVE';
     });
     //renumber secondaries
-    activeSecondaryRegistrations.map(async (reg, index) => {
-        return await connection_1.default.registration.update({
+    const renumbered = activeSecondaryRegistrations.map((reg, index) => {
+        reg.sessionPosition = index + 1;
+        return reg;
+    });
+    for (const reg of renumbered) {
+        const updated = await connection_1.default.registration.update({
             where: {
                 id: reg.id
             },
             data: {
-                sessionPosition: index + 1
+                sessionPosition: reg.sessionPosition
             }
         });
-    });
+        console.log(updated);
+    }
+    ;
 }
 async function getRegistrationByPosId(sessionPosition) {
-    const currentSession = await connection_1.default.currrentSession.findFirst({
+    const currentSession = await connection_1.default.currentSession.findFirst({
         include: {
-            currentSession: {
+            session: {
                 include: {
                     registrations: true
                 }
@@ -284,7 +314,8 @@ async function getRegistrationByPosId(sessionPosition) {
     const registration = await connection_1.default.registration.findFirst({
         where: {
             sessionId: currentSession.sessionId,
-            sessionPosition: sessionPosition
+            sessionPosition: sessionPosition,
+            sessionStatus: 'ACTIVE'
         }
     });
     if (!registration) {

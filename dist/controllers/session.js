@@ -6,9 +6,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.formatSessionOutput = exports.endCurrentSesssion = exports.getCurrentSession = void 0;
 const connection_1 = __importDefault(require("../db/connection"));
 const getCurrentSession = async () => {
-    return await connection_1.default.currrentSession.findFirst({
+    return await connection_1.default.currentSession.findFirst({
         include: {
-            currentSession: {
+            session: {
                 include: {
                     registrations: true
                 }
@@ -18,18 +18,38 @@ const getCurrentSession = async () => {
 };
 exports.getCurrentSession = getCurrentSession;
 const endCurrentSesssion = async () => {
-    return await connection_1.default.currrentSession.delete({
+    //Set all Active registrations to deregistered
+    const currentSession = await connection_1.default.currentSession.findFirst({
+        include: {
+            session: {
+                include: {
+                    registrations: true
+                }
+            }
+        }
+    });
+    if (!currentSession)
+        throw ('this error is here to remove null posibility');
+    await connection_1.default.registration.updateMany({
         where: {
-            currentSessionId: 1
+            sessionId: currentSession.sessionId
+        },
+        data: {
+            sessionStatus: 'DEREGISTERED'
+        }
+    });
+    return await connection_1.default.currentSession.delete({
+        where: {
+            id: 1
         },
     });
 };
 exports.endCurrentSesssion = endCurrentSesssion;
-const formatSessionOutput = (currentSession) => {
-    const data = JSON.parse(JSON.stringify(currentSession, null, 2));
-    const registrations = data.currentSession.registrations;
+const formatSessionOutput = (cSession) => {
+    const data = JSON.parse(JSON.stringify(cSession, null, 2));
+    const registrations = data.session.registrations;
     const activeRegistrations = registrations.filter((reg) => reg.sessionStatus === 'ACTIVE');
-    const outputString = activeRegistrations.map((reg) => {
+    const outputString = activeRegistrations.sort((reg1, reg2) => reg1.sessionPosition - reg2.sessionPosition).map((reg) => {
         return `${reg.sessionPosition}: ${reg.type} - ${reg.userName}`;
     }).join('\n');
     return outputString;

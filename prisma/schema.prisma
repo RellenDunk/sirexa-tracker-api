@@ -140,7 +140,7 @@ model Ban {
 
   //relations
   user    User @relation(fields:[userId], references:[id]) 
-  userId  String @unique
+  userId  String @unique 
 }
 model BanAppealMeeting {
   id          String   @id @default(uuid())

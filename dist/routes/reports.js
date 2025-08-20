@@ -16,4 +16,10 @@ reportsRouter.route('/appeals').
     get((req, res) => {
     res.send(`list of ban appeal meetings`);
 });
+reportsRouter.route('/session/').
+    get((req, res) => {
+    const userName = req.query.reportType || '';
+    res.send('session reports generated based on url queries');
+});
+reportsRouter.route('');
 exports.default = reportsRouter;
