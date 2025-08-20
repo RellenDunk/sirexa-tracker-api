@@ -26,7 +26,7 @@ userRouter.route('/:cName/unBan').
     })
 
 userRouter.route('/:cName/registrations').
-    post(async (req,res) =>{
+    get(async (req,res) =>{
         const cName = req.params.cName
         const types = req.query.types as string[] || ['NEW']
         const uCaseTypes = types.map((type)=>{
