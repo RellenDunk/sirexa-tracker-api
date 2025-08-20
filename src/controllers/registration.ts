@@ -1,8 +1,8 @@
 import prisma from "../db/connection";
-import { Registration, Session, RegistrationOrigin} from "../generated/prisma";
-import { getRegistrationsByUserAndTypes } from "../models/registrations";
+import { Registration, Session, RegistrationOrigin, $Enums, UserTiers} from "../generated/prisma";
+import { getRegistrationsByUserIdAndOrigins, updateUserTier } from "../models/registrations";
 import { getCurrentServer } from "../models/server";
-import { getUserByName } from "../models/user";
+import { getTierInfo, getUserByName } from "../models/user";
 
 export const getAllRegistrations = async (): Promise<Registration[]> => {
     return await prisma.registration.findMany();
@@ -14,7 +14,7 @@ export const registerMain = async (characterName: string, userName: string ): Pr
     if (!currentServer) {
         throw new Error("No current server found");
     }
-    return await prisma.registration.create({
+    const registration = await prisma.registration.create({
         data:{
             userName:userName,
             type: 'MAIN',
@@ -81,7 +81,30 @@ export const registerMain = async (characterName: string, userName: string ): Pr
             });
         })
         return reg;
-    }) 
+    })
+    if(!registration)
+        throw new Error('Registration failed')
+
+    //get new registration count for userId'
+    const registrations = await getRegistrationsByUserIdAndOrigins(registration.userId, ['NEW'], currentServer.currentServerId)
+    if(!registrations)
+        throw new Error('registrations no find')
+
+    //determine tier
+    const tier = getTierInfo(registrations.length)
+
+    //save tier to database
+    await prisma.user.update({
+        where:{
+            id: registration.userId
+        },
+        data: {
+            tier: tier.tier
+        }
+    })
+    
+
+    return registration
 }
 
 export const registerSecondary = async (characterName: string, userName: string): Promise<Registration> => {
@@ -102,7 +125,8 @@ export const registerSecondary = async (characterName: string, userName: string)
         throw new Error("No current session found");
     }
 
-    return await prisma.registration.create({
+    //after everything is up and runnging break this out into functions. please
+    const registration = await prisma.registration.create({
         data:{
             userName:userName,
             type: 'SECONDARY',
@@ -147,6 +171,18 @@ export const registerSecondary = async (characterName: string, userName: string)
         })
         return reg
     })
+
+    const registrations = await getRegistrationsByUserIdAndOrigins(registration.userId, ['NEW'], currentServer.currentServerId)
+    if(!registrations)
+        throw new Error('registrations no find')
+
+    //determine tier
+    const tier = getTierInfo(registrations.length)
+
+    //save tier to database
+    await updateUserTier(registration.userId, tier.tier);
+
+    return registration
 }
 
 export const deregister = async (sessionPosition: number): Promise<Session | null> => {
@@ -205,7 +241,7 @@ export const promote = async (sessionPosition: number): Promise<Session | null> 
         data:{
             userName: oldRegistration.userName,
             type: 'MAIN',
-            origin: 'Upgrade',
+            origin: 'UPGRADE',
             user:{
                 connect:{
                     id:oldRegistration.userId
@@ -259,7 +295,7 @@ export const demote = async (sessionPosition: number): Promise<Session | null> =
         data:{
             userName: oldRegistration.userName,
             type: 'SECONDARY',
-            origin: 'Downgrade',
+            origin: 'DOWNGRADE',
             user:{
                 connect:{
                     id:oldRegistration.userId
@@ -289,6 +325,7 @@ export const demote = async (sessionPosition: number): Promise<Session | null> =
     await renumberSecondaries(currentSession)
     return currentSession.session
 }
+
 
 async function renumberSecondaries(currentSession: { session: { registrations: Registration[]} }) {
     const activeSecondaryRegistrations:Registration[] = currentSession.session.registrations.filter((registration:Registration) => {
@@ -345,10 +382,12 @@ async function getRegistrationByPosId(sessionPosition: number) {
 export const  getRegistrationsByNameAndType = async (cName: string, types: RegistrationOrigin[]) => {
     const server = await getCurrentServer()
     const user = await getUserByName(cName, server)
-    const registrations = await getRegistrationsByUserAndTypes(user.id, types, server.id)
+    const registrations = await getRegistrationsByUserIdAndOrigins(user.id, types, server.id)
     if(!registrations){
         throw new Error (`could not get registrations for ${cName} of type: ${types} on server ${server}`)
     }
-    else return registrations
+    else 
+        return registrations
 }
+
 

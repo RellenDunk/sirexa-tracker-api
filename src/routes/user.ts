@@ -1,19 +1,22 @@
 import { Router } from 'express';
 import { banUser, unBanUser } from '../controllers/user';
-import { getRegistrationsByNameAndType } from '../controllers/registration'
+import { getRegistrationsByNameAndType as getRegistrationsByNameAndOrigin } from '../controllers/registration'
 import { RegistrationOrigin } from '../generated/prisma';
+import { groupRegistrationsByOrigin} from'../models/registrations'
+import { ParsedQs } from 'qs';
 
 const userRouter = Router();
 
 userRouter.route('/').
     all((req,res) => {res.send('User routes')})
-userRouter.route('/:username').
-    get((req, res) => res.send('maybe we can\'t do anything with this'));
+userRouter.route('/:cName').
+    get((req, res) => res.json(await getUserRecord(cName)));
 
 userRouter.route('/:cName/ban').
     post(async (req,res) =>{
         const reason:string = req.query.reason as string
         const cName:string = req.params.cName
+        const canAppeal = yesNoParse(req.query.canAppeal) 
         const banResult = await banUser(cName,reason)
         res.send(`User ${cName} is Banned for ${reason}`)
     })
@@ -28,14 +31,28 @@ userRouter.route('/:cName/unBan').
 userRouter.route('/:cName/registrations').
     get(async (req,res) =>{
         const cName = req.params.cName
-        const types = req.query.types as string[] || ['NEW']
-        const uCaseTypes = types.map((type)=>{
-            return type.toUpperCase() as RegistrationOrigin
+        const types = req.query.origin as string[] || ['NEW']
+        const uCaseOrigins = types.map((origin)=>{
+            return origin.toUpperCase() as RegistrationOrigin
         })
-        const registrations = await getRegistrationsByNameAndType(cName, uCaseTypes)
-        res.send(`${cName} has ${registrations.length} ${types.join(' and ')}`)
+        const registrations = await getRegistrationsByNameAndOrigin(cName, uCaseOrigins)
+        const regsByorigin = groupRegistrationsByOrigin(registrations)
+
+        const registrationOutput = Object.entries(regsByorigin).map(([key, value]) => [`${key}: ${value.length}`]).join('\n')
+
+        res.send(`Registrations for ${cName}: \n ${registrationOutput}`)
     })
 export default userRouter;
 
 
+
+function yesNoParse(canAppeal: string | ParsedQs | (string | ParsedQs)[] | undefined) {
+    if(canAppeal)
+        if(canAppeal.toString().toUpperCase() == 'NO')
+            return false
+        else
+            return true
+    else
+        return null
+}
 

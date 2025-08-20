@@ -1,4 +1,5 @@
 import prisma from "../db/connection";
+import { getCurrentServer } from "./server";
 
 export const  banUser = async (cName: string, reason: string) => {
 
@@ -44,4 +45,18 @@ export const unBanUser = async(cName:string ) =>{
         }
     })
 
+}
+
+export const getUserRecord = async(cName: string) =>{
+    const cServer = await getCurrentServer()
+    
+    if(cServer)
+        return await prisma.user.findUnique({
+            where:{
+                characterName_serverId:{
+                    characterName:cName,
+                    serverId: cServer.currentServerId
+                }
+            }
+        })
 }

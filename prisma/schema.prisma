@@ -24,8 +24,8 @@ enum RegistrationType {
 ///only NEW registrations are counted in user rankings, this allows for promotions and downgrades not inflating
 enum RegistrationOrigin {
   NEW
-  Upgrade
-  Downgrade
+  UPGRADE
+  DOWNGRADE
 }
 
 ///This is necessary so that we can know they didn't deregister, and still use it in user registration counts - also allows the information to be used in visualizations of sessions
@@ -40,8 +40,10 @@ enum RegistrationSessionStatus {
 enum UserTiers {
   BASIC
   PREMIUM
+  TRUSTED
   ELITE
   PRIORITIZED
+  ENFORCER
   MIRU
 }
 
@@ -137,6 +139,7 @@ model Registration {
 model Ban {
   id      String @id @default(uuid())
   reason  String @default("")
+  canAppeal Boolean @default(true)
 
   //relations
   user    User @relation(fields:[userId], references:[id]) 

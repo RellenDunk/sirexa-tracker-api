@@ -1,7 +1,7 @@
 import prisma from "../db/connection"
-import { RegistrationOrigin } from "../generated/prisma"
+import { Registration, RegistrationOrigin, UserTiers } from "../generated/prisma"
 
-export const getRegistrationsByUserAndTypes = async(userId:string, types:RegistrationOrigin[], serverId:string) => {
+export const getRegistrationsByUserIdAndOrigins = async(userId:string, types:RegistrationOrigin[], serverId:string) => {
     const registrations = await prisma.registration.findMany({
         where: {
             userId: userId,
@@ -15,3 +15,28 @@ export const getRegistrationsByUserAndTypes = async(userId:string, types:Registr
     else
         return registrations
 }
+
+export const groupRegistrationsByOrigin = (registrations: Registration[]) =>{
+    return registrations.reduce((acc, reg) =>{
+        const originType = reg.origin
+        if(!acc[originType]){
+            acc[originType]=[]
+        }
+        acc[originType].push(reg)
+        return acc
+    }, {} as RegistrationsByOrigin)
+}
+
+export const updateUserTier = async (id: string, tier: UserTiers  )=>{  
+    await prisma.user.update({
+        where: {
+            id: id
+        },
+        data: {
+            tier: tier
+        }
+    });
+}
+
+
+export type RegistrationsByOrigin = Record<RegistrationOrigin, Registration[]>
