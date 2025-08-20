@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { banUser, unBanUser } from '../controllers/user';
+import { banUser, getUserRecord, unBanUser } from '../controllers/user';
 import { getRegistrationsByNameAndType as getRegistrationsByNameAndOrigin } from '../controllers/registration'
 import { RegistrationOrigin } from '../generated/prisma';
 import { groupRegistrationsByOrigin} from'../models/registrations'
@@ -10,7 +10,7 @@ const userRouter = Router();
 userRouter.route('/').
     all((req,res) => {res.send('User routes')})
 userRouter.route('/:cName').
-    get((req, res) => res.json(await getUserRecord(cName)));
+    get(async (req, res) => res.json(await getUserRecord(req.params.cName)));
 
 userRouter.route('/:cName/ban').
     post(async (req,res) =>{

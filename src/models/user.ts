@@ -15,7 +15,8 @@ export const getUserByName = async (cName:string, server:Server)=>{
         return user
 }
 export const getTierInfo = (numRegs: number, tierMap = numberToTierMap) => {
-    return tierMap[Math.floor(numRegs/10)] || tierMap[0]
+    const tierNum = Math.floor(numRegs/10) *10
+    return tierMap[tierNum] || tierMap[0]
 }
 
 export const numberToTierMap: nearestTenToTierMap = {
