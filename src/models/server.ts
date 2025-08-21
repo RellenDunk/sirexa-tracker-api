@@ -14,3 +14,11 @@ export const getCurrentServer = async () => {
         throw new Error(`could find server - name:${currentServer.currentServerName} id: ${currentServer.currentServerId}`)
     return server
 }
+
+export const getAllUsers = async (serverId: string) => {
+    return prisma.user.findMany({
+        where:{
+            serverId: serverId
+        },
+    })
+}

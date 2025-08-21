@@ -79,7 +79,6 @@ model User {
   updatedAt          DateTime       @updatedAt
   lastRegistrationAt DateTime?
   Registration       Registration[]
-  status             UserStatus     @default(ACTIVE)
   tier               UserTiers      @default(BASIC)
   tierUpdatedAt      DateTime?
 

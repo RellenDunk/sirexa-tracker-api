@@ -15,8 +15,8 @@ registrationRouter.route('/main').
 
 registrationRouter.route('/secondary').
     post(async (req, res) => {
-        const userName = req.query.uName || 'defaultUser';
-        const charName = req.query.cName || req.query.uName;
+        const userName = req.query.uName as string || 'defaultUser';
+        const charName = req.query.cName as string || req.query.uName as string;
         res.json(await registerSecondary(charName as string,userName as string));
     });
 

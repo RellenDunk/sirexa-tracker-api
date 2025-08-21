@@ -60,3 +60,20 @@ export const getUserRecord = async(cName: string) =>{
             }
         })
 }
+
+export const changeName = async(cName:string, newName: string) => {
+    const cServer = await getCurrentServer()
+    if(cServer)
+        return await prisma.user.update({ 
+            where:{
+                characterName_serverId:{
+                    characterName:cName,
+                    serverId: cServer.currentServerId
+                }
+            },
+            data:{
+                characterName: newName
+            }
+        })
+}
+

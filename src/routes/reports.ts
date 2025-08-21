@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { getTopUsersReport } from "../controllers/reports";
 
 const reportsRouter = Router();
 
@@ -6,8 +7,10 @@ reportsRouter.route('/').
     get((req, res) => res.send('Display registration information'));
 
 reportsRouter.route('/topusers').
-    post((req, res) => {
-        res.send(`users by most registrations`);
+    get(async (req, res) => {
+        const reportArgs=req.query.split
+        const topUsersReport = await getTopUsersReport()
+        res.send(`TOP USERS: \n\n ${topUsersReport} `);
     });
 reportsRouter.route('/bannedusers').
     get((req, res) => {

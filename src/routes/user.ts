@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { banUser, getUserRecord, unBanUser } from '../controllers/user';
+import { banUser, changeName, getUserRecord, unBanUser } from '../controllers/user';
 import { getRegistrationsByNameAndType as getRegistrationsByNameAndOrigin } from '../controllers/registration'
 import { RegistrationOrigin } from '../generated/prisma';
 import { groupRegistrationsByOrigin} from'../models/registrations'
@@ -26,6 +26,13 @@ userRouter.route('/:cName/unBan').
         const cName = req.params.cName
         const unBanResult = await(unBanUser(cName))
         res.send(`user ${cName} is Unbanned`)
+    })
+userRouter.route('/:cName/change').
+    post(async (req,res) =>{
+        const cName = req.params.cName
+        const newName = req.query.new as string
+        const result = await(changeName(cName, newName))
+        res.json(result)
     })
 
 userRouter.route('/:cName/registrations').
