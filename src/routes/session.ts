@@ -7,7 +7,7 @@ sessionRouter.route('/').
     get(async (req, res) =>{
         const currentSession = await getCurrentSession();
         if(!currentSession) {
-            return res.status(404).send('No current session found');
+            return res.status(200).send('No current session found');
         }
         const outputString = formatSessionOutput(currentSession);
         res.send(`CURRENT USERS \n${outputString}`)
