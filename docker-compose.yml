@@ -8,8 +8,8 @@ services:
       - NODE_ENV=development
       - DB_HOST=db
       - DB_PORT=5432
-      - DB_USER=Gagakshi
-      - DB_PASSWORD=Jx7Lm2qB9rT4nC8fZ0hV5dW1uKe3Y
+      - DB_USER=gagakshi
+      - DB_PASSWORD=devilbatghost
       - DB_NAME=sirexa
     depends_on:
       - db
@@ -18,8 +18,8 @@ services:
     image: postgres:16-alpine
     container_name: sirexa-tracker-db
     environment:
-      - POSTGRES_USER=Gagakshi
-      - POSTGRES_PASSWORD=Jx7Lm2qB9rT4nC8fZ0hV5dW1uKe3Y
+      - POSTGRES_USER=gagakshi
+      - POSTGRES_PASSWORD=devilbatghost
       - POSTGRES_DB=sirexa
     ports:
       - "5432:5432"
