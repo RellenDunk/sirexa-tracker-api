@@ -9,7 +9,7 @@ services:
       - DB_HOST=db
       - DB_PORT=5432
       - DB_USER=Gagakshi
-      - DB_PASSWORD=DevilBatGhost!052006
+      - DB_PASSWORD=Jx7_Lm2q_B9rT4nC8fZ0hV5dW1uKe3Y
       - DB_NAME=sirexa
     depends_on:
       - db
@@ -19,7 +19,7 @@ services:
     container_name: sirexa-tracker-db
     environment:
       - POSTGRES_USER=Gagakshi
-      - POSTGRES_PASSWORD=DevilBatGhost!052006
+      - POSTGRES_PASSWORD=Jx7_Lm2q_B9rT4nC8fZ0hV5dW1uKe3Y
       - POSTGRES_DB=sirexa
     ports:
       - "5432:5432"
