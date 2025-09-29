@@ -13,7 +13,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = "postgres://postgres:postgres@sirexa-tracker-db:5432/sirexa?schema=public"
+  url      = env("DATABASE_URL")
 }
 
 enum RegistrationType {
